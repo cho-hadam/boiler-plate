@@ -7,6 +7,8 @@ const port = 5000;
 
 const bodyParser = require("body-parser");
 
+const cookieParser = require("cookie-parser");
+
 const config = require("./config/key");
 
 // User model
@@ -16,6 +18,8 @@ const { User } = require("./models/User");
 app.use(bodyParser.urlencoded({ extended: true }));
 // application/json
 app.use(bodyParser.json());
+
+app.use(cookieParser());
 
 // MongoDB Connect
 const mongoose = require("mongoose");
@@ -40,6 +44,38 @@ app.post("/register", (req, res) => {
 
     return res.status(200).json({
       success: true,
+    });
+  });
+});
+
+app.post("/login", (req, res) => {
+  // find request email
+  User.findOne({ email: req.body.email }, (err, user) => {
+    if (!user) {
+      return res.json({
+        loginSuccess: false,
+        message: "이메일에 해당하는 유저가 없습니다.",
+      });
+    }
+
+    // check password
+    user.comparePassword(req.body.password, (err, isMatch) => {
+      if (!isMatch)
+        return res.json({
+          loginSuccess: false,
+          message: "비밀번호가 틀렸습니다.",
+        });
+
+      // create token
+      user.generateToken((err, user) => {
+        if (err) return res.status(400).send(err);
+
+        // save token (cookie, localstorage)
+        res.cookie("x_auth", user.token).status(200).json({
+          loginSuccess: true,
+          userId: user._id,
+        });
+      });
     });
   });
 });
