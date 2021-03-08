@@ -4,15 +4,12 @@ const express = require("express");
 const app = express();
 // back server port
 const port = 5000;
-
 const bodyParser = require("body-parser");
-
 const cookieParser = require("cookie-parser");
-
 const config = require("./config/key");
-
 // User model
 const { User } = require("./models/User");
+const { auth } = require("./middleware/auth");
 
 // application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -37,7 +34,7 @@ mongoose
 app.get("/", (req, res) => res.send("Hello World!"));
 
 // get data from client and insert to database
-app.post("/register", (req, res) => {
+app.post("/api/users/register", (req, res) => {
   const user = new User(req.body);
   user.save((err, userInfo) => {
     if (err) return res.json({ success: false, err });
@@ -48,7 +45,7 @@ app.post("/register", (req, res) => {
   });
 });
 
-app.post("/login", (req, res) => {
+app.post("/api/users/login", (req, res) => {
   // find request email
   User.findOne({ email: req.body.email }, (err, user) => {
     if (!user) {
@@ -77,6 +74,19 @@ app.post("/login", (req, res) => {
         });
       });
     });
+  });
+});
+
+app.post("/api/users/auth", auth, (req, res) => {
+  // Authentication -> true
+  res.status(200).json({
+    _id: req.user._id,
+    isAdmin: req.user.role === 0 ? false : true,
+    isAuth: true,
+    email: req.user.email,
+    name: req.user.name,
+    role: req.user.role,
+    image: req.user.image,
   });
 });
 
